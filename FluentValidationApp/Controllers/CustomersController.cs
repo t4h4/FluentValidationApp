@@ -6,16 +6,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using FluentValidationApp.Models;
+using FluentValidation;
 
 namespace FluentValidationApp.Controllers
 {
     public class CustomersController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IValidator<Customer> _customerValidator;
 
-        public CustomersController(AppDbContext context)
+        public CustomersController(AppDbContext context, IValidator<Customer> customerValidator)
         {
             _context = context;
+            _customerValidator = customerValidator;
         }
 
         // GET: Customers
@@ -55,7 +58,19 @@ namespace FluentValidationApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Name,Email,Age,Birthday")] Customer customer)
         {
-            if (ModelState.IsValid)
+
+            //normalde fluent api model state'i kontrol edebiliyor. ona göre valid olma durumuna göre veri ekleniyor. aşağıdaki
+            //eski kod. değiştirip IValidator interface validate() metodunu kullanacağız. En yukarda DI işlemi yapıldı
+            /* if (ModelState.IsValid)  
+            {
+                _context.Add(customer);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            return View(customer); */
+
+            var result = _customerValidator.Validate(customer);
+            if (result.IsValid)
             {
                 _context.Add(customer);
                 await _context.SaveChangesAsync();
